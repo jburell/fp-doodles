@@ -1,0 +1,155 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"fsharp","items":[{"aliases":[],"languageName":"fsharp","name":"fsharp"}]}}
+
+#!csharp
+
+#r "nuget: CSharpFunctionalExtensions"
+
+#!csharp
+
+using CSharpFunctionalExtensions;
+
+#!csharp
+
+var a = 1;
+
+#!csharp
+
+var b = Maybe.From(a);
+
+#!csharp
+
+var c = b.Map(v => v + 1);
+
+#!csharp
+
+var d = Maybe<int>.None;
+
+#!csharp
+
+var e = d.Map(v => v + 2);
+
+#!csharp
+
+e
+
+#!csharp
+
+var f = Result.Success(new Exception("pang"));
+
+#!csharp
+
+f
+
+#!csharp
+
+var g = Result.Success<Action>(() => throw new Exception("pang2"));
+g
+
+#!csharp
+
+var h = g.MapTry(r => {r(); return 1;});
+h
+
+#!csharp
+
+var i = Result.Success(1);
+var j = i.Bind(v => Result.Success(2));
+
+#!csharp
+
+var k = i.Tap(v => Console.WriteLine(v));
+k
+
+#!csharp
+
+var l = Task.FromResult(Result.Success("hej"));
+var m = Task.FromResult(Result.Success("världen"));
+var n = await l.Map(v => m.Map(v2 => v + " " + v2));
+n
+
+#!csharp
+
+var o = await i.Bind(v => l.Map(v2 => $"{v2} {v}"));
+o
+
+#!csharp
+
+var p = Result.Failure<byte[], int>(1);
+var q = Result.Failure("pang");
+var r = p.MapError(v => q.MapError(v2 => v + " " + v2));
+r
+
+#!csharp
+
+Func<int, Result> s = v => Result.Failure<int, int>(4).MapError(v2 => $"{v2}");
+var t = s(2);
+t
+
+#!csharp
+
+var ValidateEmailAdresses = (string[] emails) => Array.ConvertAll(emails, email => "Validated: " + email);
+var FormatEmails = (string[] emails) => {
+  //throw new ArgumentNullException("Aja baja!"); 
+  return emails.Select(v => v.ToUpper()).ToArray();
+};
+var SaveToDb = (string[] emails) => emails.Select(v => "Sparad: " + v).ToArray();
+
+var u = 
+  Result.Success(new[] {"email1", "email2"})
+  .MapTry(ValidateEmailAdresses)
+  .MapTry(FormatEmails)
+  .MapTry(SaveToDb)
+  .Tap(emails => Array.ForEach(emails, Console.WriteLine))
+  ;
+u
+
+#!fsharp
+
+#r "nuget: FSharpPlus"
+
+#!fsharp
+
+open FSharpPlus
+
+let SafeExec func input =
+  try
+    Ok(func input)
+  with 
+  | ex -> Error ex
+
+let (>>!) f g =
+    f |> Result.bindError g
+
+let (>=>) f g x =
+    match f x with
+    | Ok v -> g v
+    | Error e -> Error e
+
+type EmailError =
+  | ValidationError of string
+  | FormatError of string
+  | DbError of string
+  | SendingError of string
+  | UnknownError of string
+
+let FsValidateEmailAdresses = List.map (fun email -> "Validated: " + email)
+//let FsFormatEmails = List.map (fun (email: string) -> email.ToUpper())
+let FsFormatEmails = List.map (fun (email: string) -> raise (System.FormatException "BOOM!"); email.ToUpper())
+let FsSendEmail = List.map (fun email -> "Skickad: " + email)
+
+let handleException (e: exn) =
+    match e with
+    | :? System.FormatException -> FormatError "Invalid email format." |> Error
+    | :? System.InvalidOperationException -> DbError "Db error." |> Error
+    | :? System.ArgumentNullException -> ValidationError "Email validation failed." |> Error
+    | :? System.Net.Mail.SmtpException -> SendingError "Email sending failed." |> Error
+    | _ -> UnknownError "An unknown error occurred." |> Error
+
+let Try f v = (SafeExec f v) >>! handleException
+
+["bill@bing.com"; "sergey@google.com"]
+|> Try FsValidateEmailAdresses
+>>= Try FsFormatEmails
+>>= Try FsSendEmail

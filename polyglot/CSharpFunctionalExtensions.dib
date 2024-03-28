@@ -1,6 +1,6 @@
 #!meta
 
-{"kernelInfo":{"defaultKernelName":"fsharp","items":[{"aliases":[],"languageName":"fsharp","name":"fsharp"}]}}
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"},{"aliases":[],"languageName":"fsharp","name":"fsharp"}]}}
 
 #!csharp
 
@@ -113,6 +113,9 @@ let SafeExec func input =
   with 
   | ex -> Error ex
 
+let (>>!) left right =
+    left |> Result.bindError right
+
 type EmailError =
   | ValidationError of string
   | FormatError of string
@@ -133,7 +136,7 @@ let handleException (e: exn) =
     | :? System.Net.Mail.SmtpException -> SendingError "Email sending failed." |> Error
     | _ -> UnknownError "An unknown error occurred." |> Error
 
-let Try f v = (SafeExec f v) >>! handleException
+let Try left v = (SafeExec left v) >>! handleException
 
 ["bill@bing.com"; "sergey@google.com"]
 |> Try FsValidateEmailAdresses

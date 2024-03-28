@@ -29,17 +29,11 @@ var d = Maybe<int>.None;
 #!csharp
 
 var e = d.Map(v => v + 2);
-
-#!csharp
-
 e
 
 #!csharp
 
 var f = Result.Success(new Exception("pang"));
-
-#!csharp
-
 f
 
 #!csharp

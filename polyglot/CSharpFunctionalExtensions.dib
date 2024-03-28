@@ -119,14 +119,6 @@ let SafeExec func input =
   with 
   | ex -> Error ex
 
-let (>>!) f g =
-    f |> Result.bindError g
-
-let (>=>) f g x =
-    match f x with
-    | Ok v -> g v
-    | Error e -> Error e
-
 type EmailError =
   | ValidationError of string
   | FormatError of string
